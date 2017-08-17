@@ -1,0 +1,13 @@
+cn\ulegal\zc\UlegalZCApplication.class
+cn\ulegal\zc\service\impl\UlegalZCServiceImpl.class
+cn\ulegal\zc\dao\impl\UlegalZCDaoImpl.class
+cn\ulegal\zc\util\UlegalZCUtil$1.class
+cn\ulegal\zc\dao\UlegalZCDao.class
+cn\ulegal\zc\UlegalZCConfiger$1.class
+cn\ulegal\zc\controller\UlegalZCController.class
+cn\ulegal\zc\service\UlegalZCService.class
+cn\ulegal\zc\util\UlegalZCUtil.class
+cn\ulegal\zc\vo\MessageVo.class
+cn\ulegal\zc\vo\CopyRightsVo.class
+cn\ulegal\zc\model\CopyRightsModel.class
+cn\ulegal\zc\UlegalZCConfiger.class
