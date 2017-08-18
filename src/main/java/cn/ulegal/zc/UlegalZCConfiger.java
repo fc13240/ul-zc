@@ -5,6 +5,7 @@ import com.google.gson.Gson;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.jdbc.DataSourceBuilder;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.web.servlet.MultipartConfigFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
@@ -14,6 +15,7 @@ import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
 
+import javax.servlet.MultipartConfigElement;
 import javax.sql.DataSource;
 import java.util.Properties;
 
@@ -57,5 +59,16 @@ public class UlegalZCConfiger {
                 registry.addMapping("/**");
             }
         };
+    }
+
+    /**
+     * 上传文件设置
+     * @return
+     */
+    @Bean
+    public MultipartConfigElement multipartConfigElement() {
+        MultipartConfigFactory factory = new MultipartConfigFactory();
+        factory.setMaxFileSize(1024L * 1024L * 50);
+        return factory.createMultipartConfig();
     }
 }

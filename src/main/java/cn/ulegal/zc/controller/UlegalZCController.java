@@ -7,6 +7,7 @@ import cn.ulegal.zc.vo.CopyRightsVo;
 import cn.ulegal.zc.vo.MessageVo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.Part;
 import javax.validation.Valid;
@@ -85,6 +86,36 @@ public class UlegalZCController {
     }
 
     /**
+     *  文件验证
+     * @param upFile
+     * @return
+     */
+    @PostMapping(value="/checkFile")
+    public MessageVo checkFile(@RequestParam("upfile") MultipartFile upFile) {
+        File file = null;
+        try {
+            file=File.createTempFile(upFile.getName(), null);
+            upFile.transferTo(file);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        MessageVo messageVo = UlegalZCUtil.getMessageVo();
+        CopyRightsModel copyRightsModel = ulegalZCService.checkFile(file);
+        Map data = new HashMap();
+        if (null != copyRightsModel) {
+            messageVo.setCode(200);
+            data.put("owner", copyRightsModel.getOwner());
+            data.put("title", copyRightsModel.getTitle());
+            data.put("hashValue", copyRightsModel.getHashValue());
+            data.put("timestamp", copyRightsModel.getTimestamp());
+        } else {
+            data.put("message", "File does not exist");
+        }
+        messageVo.setData(data);
+        return messageVo;
+    }
+
+    /**
      *  信息处理及保存
      * @param copyRightsVo
      * @return
@@ -93,6 +124,7 @@ public class UlegalZCController {
     public MessageVo submitInfo(@RequestBody CopyRightsVo copyRightsVo) {
         MessageVo messageVo = UlegalZCUtil.getMessageVo();
         CopyRightsVo result = ulegalZCService.saveOrderInfo(copyRightsVo);
+        ulegalZCService.curingEvidence(result);
         if (null != result) {
             messageVo.setCode(200);
             messageVo.setData(result);

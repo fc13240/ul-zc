@@ -12,12 +12,18 @@ import com.itextpdf.kernel.pdf.PdfReader;
 import com.itextpdf.kernel.pdf.PdfWriter;
 import com.tencent.trustsql.sdk.TrustSDK;
 import com.tencent.trustsql.sdk.util.SignStrUtil;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.security.MessageDigest;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
@@ -58,7 +64,6 @@ public class UlegalZCServiceImpl implements UlegalZCService {
         String hashValue = getHashValue(copyRightsVo.getFilePath());
         copyRightsVo.setHashValue(hashValue);
         CopyRightsModel copyRightsModel = gson.fromJson(gson.toJson(copyRightsVo), CopyRightsModel.class);
-//        Map curingResult = curingEvidence(copyRightsModel);
         Boolean tranPdfResult = tranPdf(copyRightsVo);
         if (!tranPdfResult) {
             return null;
@@ -81,19 +86,61 @@ public class UlegalZCServiceImpl implements UlegalZCService {
         return copyRightsVo;
     }
 
+    @Override
+    public CopyRightsModel checkFile(File file) {
+        CopyRightsModel model = null;
+        InputStream fis = null;          //将流类型字符串转换为String类型字符串
+        try {
+            fis = new FileInputStream(file);
+
+            byte[] buffer = new byte[1024];
+            MessageDigest complete = MessageDigest.getInstance("SHA-256"); //如果想使用SHA-1或SHA-256，则传入SHA-1,SHA-256
+            int numRead;
+            do {
+                numRead = fis.read(buffer);    //从文件读到buffer，最多装满buffer
+                if (numRead > 0) {
+                    complete.update(buffer, 0, numRead);  //用读到的字节进行SHA256的计算，第二个参数是偏移量
+                }
+            } while (numRead != -1);
+
+            byte[] b = complete.digest();;
+            String result = "";
+            for (int i=0; i < b.length; i++) {
+                result += Integer.toString( ( b[i] & 0xff ) + 0x100, 16).substring(1);//加0x100是因为有的b[i]的十六进制只有1位
+            }
+            model = ulegalZCDao.getCountByHashValue(result);
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            try {
+                fis.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        return model;
+    }
+
     /** 电子证据固化
      *
      * @return
      */
-    private Map curingEvidence(CopyRightsModel copyRightsModel) {
+    @Override
+    @Async
+    public void curingEvidence(CopyRightsVo copyRightsVo) {
         String url = "https://api.ulegal.cn:9091/evidenceCuring";
         Map data = new HashMap();
-        data.put("owner", copyRightsModel.getOwner());
-        data.put("title", copyRightsModel.getTitle());
-        data.put("source", copyRightsModel.getSource());
-        data.put("hashValue", copyRightsModel.getHashValue());
+        data.put("owner", copyRightsVo.getOwner());
+        data.put("title", copyRightsVo.getTitle());
+        data.put("source", copyRightsVo.getSource());
+        data.put("hashValue", copyRightsVo.getHashValue());
         Map result = restTemplate.postForObject(url, data, Map.class);
-        return result;
+        String curingKey = result.get("curingKey") == null ? null : result.get("curingKey").toString();
+        if (null != curingKey) {
+            copyRightsVo.setCuringKey(curingKey);
+            CopyRightsModel copyRightsModel = gson.fromJson(gson.toJson(copyRightsVo), CopyRightsModel.class);
+            ulegalZCDao.updateCuringId(copyRightsModel);
+        }
     }
 
     /**
@@ -126,7 +173,12 @@ public class UlegalZCServiceImpl implements UlegalZCService {
     private Boolean insertData(CopyRightsModel copyRightsModel) {
         String url = "https://open.trustsql.qq.com/cgi-bin/v1.0/trustsql_iss_append.cgi";
         copyRightsModel.setFilePath(null);
+        Long timeStamp = copyRightsModel.getTimestamp();
         Map content = gson.fromJson(gson.toJson(copyRightsModel), Map.class);
+        content.put("timestamp", timeStamp.toString());
+        if (StringUtils.isEmpty(content.get("idCardNo").toString())) {
+            content.remove("idCardNo");
+        }
         Map data = getAppendData(content);
         String address = null;
         String resutlData = "";
@@ -165,7 +217,7 @@ public class UlegalZCServiceImpl implements UlegalZCService {
         data.put("sign_type", "ECDSA");
         data.put("mch_id", "gbec74d8aa11accfa");
         Date date = new Date();
-        data.put("info_key", content.get("order_id"));
+        data.put("info_key", content.get("orderId"));
         data.put("info_version", 1);
         data.put("state", 1);
         data.put("content", gson.toJson(content));

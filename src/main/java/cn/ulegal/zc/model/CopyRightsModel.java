@@ -10,19 +10,19 @@ import java.util.Date;
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class CopyRightsModel {
-    @SerializedName(value="order_id", alternate="orderId")
+    @SerializedName(value="orderId", alternate="order_id")
     String orderId;
     String source;
     String owner;
-    @SerializedName(value="id_card_no", alternate="idCardNo")
+    @SerializedName(value="idCardNo", alternate="id_card_no")
     String idCardNo;
-    @SerializedName(value="hash_value", alternate="hashValue")
+    @SerializedName(value="hashValue", alternate="hash_value")
     String hashValue;
     Long timestamp = new Date().getTime();
     Integer status;
-    @SerializedName(value="curing_key", alternate="curingKey")
+    @SerializedName(value="curingKey", alternate="curing_key")
     String curingKey;
-    @SerializedName(value="file_path", alternate="filePath")
+    @SerializedName(value="filePath", alternate="file_path")
     String filePath;
     String title;
     String email;
